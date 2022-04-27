@@ -97,9 +97,6 @@ namespace CocktailSearch
 
 
             }
-
-
-
             return returnValue;
         }
 
@@ -127,9 +124,35 @@ namespace CocktailSearch
                 }
             }
 
+            // Return the alcohol list from the file system to the user.
+            return returnVal;
+        }
 
-            
 
+        /**
+        * Reads the alcohol cache from the file and build a list of alcohols from it
+        */
+        private List<string> readGlassCache()
+        {
+            // Create a return Data container
+            List<string> returnVal = new List<string>();
+            dynamic drink = null;
+
+            // Check that our drinks file exists
+            if (File.Exists("data/glasses.json"))
+            {
+                drink = File.ReadAllText("data/glasses.json");
+
+                dynamic parsedDrink = JsonConvert.DeserializeObject(drink);
+
+                foreach (var item in parsedDrink)
+                {
+                    string name = item["strGlass"];
+                    returnVal.Add(name);
+                }
+            }
+
+            // Return the alcohol list from the file system to the user.
             return returnVal;
         }
 
@@ -147,6 +170,38 @@ namespace CocktailSearch
             {
                 // check if our drinks file exists
                 if (File.Exists("data/drinks.json"))
+                {
+                    // The drinks file exists!
+                    returnVal = true;
+                }
+                else
+                {
+                    returnVal = false;
+                }
+            }
+            else
+            {
+                returnVal = false;
+            }
+
+            // Let the user know if the alcohol cache exists.
+            return returnVal;
+        }
+
+
+        /**
+        * Checks to see if the alcohol cache file exists
+        */
+        private bool glassCacheExists()
+        {
+            // Setup a return value
+            bool returnVal = false;
+
+            // Check if our data directory exists
+            if (Directory.Exists("data/"))
+            {
+                // check if our drinks file exists
+                if (File.Exists("data/glasses.json"))
                 {
                     // The drinks file exists!
                     returnVal = true;
@@ -193,31 +248,71 @@ namespace CocktailSearch
             writer.Write(d); //write the current date to the file. change this with your date or something.
             writer.Close(); //remember to close the file again.
             writer.Dispose(); //remember to dispose it from the memory.
-
-
         }
+
+
+        /**
+         * Writes the given json text to the alcohol cache file
+         */
+
+        private void setGlassCache(dynamic d)
+        {
+            // Check if our data directory exists
+            if (!Directory.Exists("data/"))
+            {
+                // If it doesn't already exist, create it
+                Directory.CreateDirectory("data/");
+            }
+
+            // Now check if our file exists
+            if (File.Exists("data/glasses.json"))
+            {
+
+                // If it does exist rename it
+                File.Move("data/glasses.json", "data/glasses-" + DateTime.Now.Millisecond + ".json");
+            }
+
+
+            // Write the file
+            System.IO.StreamWriter writer = new System.IO.StreamWriter("data/glasses.json"); //open the file for writing.
+            writer.Write(d); //write the current date to the file. change this with your date or something.
+            writer.Close(); //remember to close the file again.
+            writer.Dispose(); //remember to dispose it from the memory.
+        }
+
 
         private List<string> getGlassList()
         {
-            //makes HTTP request from web to grab list of glasses
-            using (var client = new HttpClient(new HttpClientHandler { }))
-            {
-                HttpResponseMessage response = client.GetAsync("https://www.thecocktaildb.com/api/json/v1/1/list.php?g=list").Result;
-                response.EnsureSuccessStatusCode();
-                string result = response.Content.ReadAsStringAsync().Result;
-                status.Text = "Result: " + result;
-                //instructions.Text = result;
-                dynamic stuff = JsonConvert.DeserializeObject(result);
+            List<string> returnValue = new List<string>();
 
-                dynamic drink = stuff["drinks"];  //pull the first drink from the list of this type of drink
-                List<string> returnValue = new List<string>();
-                foreach (var item in drink)
-                {
-                    string name = item["strGlass"];
-                    returnValue.Add(name);
-                }
-                return returnValue;
+            if (glassCacheExists())
+            {
+                returnValue = readGlassCache();
             }
+            else
+            {
+                //makes HTTP request from web to grab list of glasses
+                using (var client = new HttpClient(new HttpClientHandler { }))
+                {
+                    HttpResponseMessage response = client.GetAsync("https://www.thecocktaildb.com/api/json/v1/1/list.php?g=list").Result;
+                    response.EnsureSuccessStatusCode();
+                    string result = response.Content.ReadAsStringAsync().Result;
+                    status.Text = "Result: " + result;
+                    //instructions.Text = result;
+                    dynamic stuff = JsonConvert.DeserializeObject(result);
+
+                    dynamic drink = stuff["drinks"];  //pull the first drink from the list of this type of drink
+                    
+                    foreach (var item in drink)
+                    {
+                        string name = item["strGlass"];
+                        returnValue.Add(name);
+                    }
+                    setGlassCache(drink);
+                }
+            }
+
+            return returnValue;
         }
 
         private List<string> getIngList()
