@@ -12,6 +12,7 @@ using System.Net.Http;
 using System.Net;
 using Newtonsoft.Json;
 using Nancy.Json;
+using System.IO;
 
 namespace CocktailSearch
 {
@@ -56,31 +57,144 @@ namespace CocktailSearch
         }
 
         private List<string> getAlcoholList()
-        {   
+        {
+
+            // Setup a return value
+            List<string> returnValue = new List<string>();
+
+            // Let the user know we are retrieving the alcohol list.
             status.Text = "Retrieving Alcohol List";
 
-            //makes HTTP request from web to grab list of ingrediants
-            using (var client = new HttpClient(new HttpClientHandler { }))
-            {   
-                HttpResponseMessage response = client.GetAsync("https://www.thecocktaildb.com/api/json/v1/1/list.php?i=list").Result;
-                response.EnsureSuccessStatusCode();
-                string result = response.Content.ReadAsStringAsync().Result;
-               
-                //instructions.Text = result;
-                dynamic stuff = JsonConvert.DeserializeObject(result);
+            // Check and see if we've already cached this list, if we have, read from the cache, if not, read from the api
+            if (alcoholCacheExists())
+            {
+                returnValue = readAlcoholCache();
+            }
+            else
+            {
+                //makes HTTP request from web to grab list of ingrediants
+                using (var client = new HttpClient(new HttpClientHandler { }))
+                {
+                    HttpResponseMessage response = client.GetAsync("https://www.thecocktaildb.com/api/json/v1/1/list.php?i=list").Result;
+                    response.EnsureSuccessStatusCode();
+                    string result = response.Content.ReadAsStringAsync().Result;
 
-                //pull the first drink from the list of this type of drink
-                dynamic drink = stuff["drinks"];  
-                
-                List<string> returnValue = new List<string>();
-                foreach(var item in drink)
+                    //instructions.Text = result;
+                    dynamic stuff = JsonConvert.DeserializeObject(result);
+
+                    //pull the first drink from the list of this type of drink
+                    dynamic drink = stuff["drinks"];
+
+                    foreach (var item in drink)
+                    {
+                        string name = item["strIngredient1"];
+                        returnValue.Add(name);
+                    }
+                    returnValue.Sort();
+
+                    setAlcoholCache(drink);
+                }
+
+
+            }
+
+
+
+            return returnValue;
+        }
+
+
+        /**
+         * Reads the alcohol cache from the file and build a list of alcohols from it
+         */
+        private List<string> readAlcoholCache()
+        {
+            // Create a return Data container
+            List<string> returnVal = new List<string>();
+            dynamic drink = null;
+
+            // Check that our drinks file exists
+            if (File.Exists("data/drinks.json"))
+            {
+                drink = File.ReadAllText("data/drinks.json");
+
+                dynamic parsedDrink = JsonConvert.DeserializeObject(drink);
+
+                foreach (var item in parsedDrink)
                 {
                     string name = item["strIngredient1"];
-                   returnValue.Add(name);                  
+                    returnVal.Add(name);
                 }
-                returnValue.Sort();
-                return returnValue;
-            }        
+            }
+
+
+            
+
+            return returnVal;
+        }
+
+
+        /**
+         * Checks to see if the alcohol cache file exists
+         */
+        private bool alcoholCacheExists()
+        {
+            // Setup a return value
+            bool returnVal = false;
+
+            // Check if our data directory exists
+            if (Directory.Exists("data/"))
+            {
+                // check if our drinks file exists
+                if (File.Exists("data/drinks.json"))
+                {
+                    // The drinks file exists!
+                    returnVal = true;
+                }
+                else
+                {
+                    returnVal = false;
+                }
+            }
+            else
+            {
+                returnVal = false;
+            }
+
+            // Let the user know if the alcohol cache exists.
+            return returnVal;
+        }
+
+
+        /**
+         * Writes the given json text to the alcohol cache file
+         */
+
+        private void setAlcoholCache(dynamic d)
+        {
+            // Check if our data directory exists
+            if (!Directory.Exists("data/"))
+            {
+                // If it doesn't already exist, create it
+                Directory.CreateDirectory("data/");
+            }
+
+            // Now check if our file exists
+            if (File.Exists("data/drinks.json"))
+            {
+
+                // If it does exist rename it
+                File.Move("data/drinks.json", "data/drinks-" + DateTime.Now.Millisecond + ".json");
+            }
+
+
+            // Write the file
+            System.IO.StreamWriter writer = new System.IO.StreamWriter("data/drinks.json"); //open the file for writing.
+            writer.Write(d); //write the current date to the file. change this with your date or something.
+            writer.Close(); //remember to close the file again.
+            writer.Dispose(); //remember to dispose it from the memory.
+
+
         }
 
         private List<string> getGlassList()
