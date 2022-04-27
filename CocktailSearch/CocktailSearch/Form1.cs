@@ -690,19 +690,24 @@ namespace CocktailSearch
 
                     //pull the first drink from the list of this type of drink
                     dynamic drink = stuff["drinks"]; 
-                   
-                   
-                    foreach (var item in drink)
+                    try
                     {
-                        string name = item["strDrink"];
-                        searchDrinks.Add(name);
-                    }
-                    drinkList.Items.Clear();
-                    for (int i = 0; i < searchDrinks.Count; i++)
+                        foreach (var item in drink)
+                        {
+                            string name = item["strDrink"];
+                            searchDrinks.Add(name);
+                        }
+                        drinkList.Items.Clear();
+                        for (int i = 0; i < searchDrinks.Count; i++)
+                        {
+                            drinkList.Items.Add(searchDrinks[i]);
+                            searchDrinks.Sort();
+                        }
+                    }catch(NullReferenceException ex)
                     {
-                        drinkList.Items.Add(searchDrinks[i]);
-                        searchDrinks.Sort();
+                        Console.WriteLine(ex.Message);
                     }
+                    
 
                 }
             }
