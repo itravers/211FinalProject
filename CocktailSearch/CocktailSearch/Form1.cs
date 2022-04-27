@@ -470,7 +470,7 @@ namespace CocktailSearch
         private void populateDrink(IDictionary<string, string> drink)
         {
             drinkName.Text = drink["name"];
-            resultPicture.Load(drink["photo"]);
+            resultPicture.Load(getCachedImageURL(drink["photo"]));
             instructions.Text = drink["instructions"];
             ingrediant1.Text = drink["ingrediant1"];
             ingrediant2.Text = drink["ingrediant2"];
@@ -530,22 +530,95 @@ namespace CocktailSearch
 
         }
 
+
+        string getCachedImageURL(string originalURL)
+        {
+            string returnURL = "";
+
+            if (isImageCached(originalURL))
+            {
+                returnURL = "data/images/" +originalURL.Substring(originalURL.LastIndexOf('/') + 1);
+            }
+            else
+            {
+                cacheImage(originalURL);
+                returnURL = originalURL;
+            }
+
+            return returnURL;
+
+        }
+
+
+        private void cacheImage(string url)
+        {
+
+            string shortURL = url.Substring(url.LastIndexOf('/') + 1);
+
+            // does our cache directory exist?
+            if (!Directory.Exists("data/"))
+            {
+                Directory.CreateDirectory("data/");
+
+            }
+
+            if (!Directory.Exists("data/images/"))
+            {
+                Directory.CreateDirectory("data/images/");
+            }
+
+            // Now check if our file exists
+            if (File.Exists("data/images/"+ shortURL))
+            {
+
+                // If it does exist rename it
+                File.Move("data/images/"+shortURL, "data/images/"+shortURL+"-" + DateTime.Now.Millisecond + ".json");
+            }
+
+            using (var client = new WebClient())
+            {
+                client.DownloadFile(url, "data/images/" + shortURL);
+            }
+
+
+        }
+
+
+        /**
+         * Checks to see if the given image is cached on our hd
+         */
+        private bool isImageCached(string originalURL)
+        {
+            bool returnVal = false;
+            string shortURL = originalURL.Substring(originalURL.LastIndexOf('/') + 1);
+
+            // the directory and file exist, this image is cached
+            if(Directory.Exists("data/images/") && File.Exists("data/images/" + shortURL))
+            {
+                returnVal = true;
+            }
+
+            return returnVal;
+        }
+
+
         private void populateFiveFavDrinks()
         {
             //Moscow Mule
-            popularDrink1.Load("https://www.thecocktaildb.com/images/media/drink/3pylqc1504370988.jpg");
+            //popularDrink1.Load("https://www.thecocktaildb.com/images/media/drink/3pylqc1504370988.jpg");
+            popularDrink1.Load(getCachedImageURL("https://www.thecocktaildb.com/images/media/drink/3pylqc1504370988.jpg"));
 
             //Mojito
-            popularDrink2.Load("https://www.thecocktaildb.com/images/media/drink/rxtqps1478251029.jpg");
+            popularDrink2.Load(getCachedImageURL("https://www.thecocktaildb.com/images/media/drink/rxtqps1478251029.jpg"));
 
             //Manhatten
-            popularDrink3.Load("https://www.thecocktaildb.com/images/media/drink/ec2jtz1504350429.jpg");
+            popularDrink3.Load(getCachedImageURL("https://www.thecocktaildb.com/images/media/drink/ec2jtz1504350429.jpg"));
 
             //Wiskey Sour
-            popularDrink4.Load("https://www.thecocktaildb.com/images/media/drink/zxd8v41576797287.jpg");
+            popularDrink4.Load(getCachedImageURL("https://www.thecocktaildb.com/images/media/drink/zxd8v41576797287.jpg"));
 
             //Long Island Tea
-            popularDrink5.Load("https://www.thecocktaildb.com/images/media/drink/ywxwqs1439906072.jpg");
+            popularDrink5.Load(getCachedImageURL("https://www.thecocktaildb.com/images/media/drink/ywxwqs1439906072.jpg"));
 
 
         }
